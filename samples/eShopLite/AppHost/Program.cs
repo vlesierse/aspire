@@ -1,6 +1,9 @@
-var builder = DistributedApplication.CreateBuilder(args);
+using Amazon.CDK.AWS.S3;
 
-builder.AddAzureProvisioning();
+var builder = DistributedApplication.CreateBuilder(args);
+builder.AddAWSCDKPublisher();
+
+builder.AddAWSCDKResource("bucket", (scope, name) => new Bucket(scope, name));
 
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
