@@ -1,5 +1,8 @@
 {
   "resources": {
+    "bucket": {
+      "error": "This resource does not support generation in the manifest."
+    },
     "postgres": {
       "type": "postgres.server.v0"
     },
@@ -17,18 +20,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http"
-        }
       }
     },
     "messaging": {
@@ -42,18 +33,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__basketcache": "{basketcache.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http2"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http2"
-        }
       }
     },
     "frontend": {
@@ -61,22 +40,7 @@
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "services__basketservice__0": "{basketservice.bindings.http.url}",
-        "services__basketservice__1": "{basketservice.bindings.https.url}",
-        "services__catalogservice__0": "{catalogservice.bindings.http.url}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http"
-        }
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
       }
     },
     "orderprocessor": {
@@ -86,18 +50,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http"
-        }
       }
     },
     "apigateway": {
@@ -105,23 +57,7 @@
       "path": "..\\ApiGateway\\ApiGateway.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "services__basketservice__0": "{basketservice.bindings.http.url}",
-        "services__basketservice__1": "{basketservice.bindings.https.url}",
-        "services__catalogservice__0": "{catalogservice.bindings.http.url}",
-        "services__catalogservice__1": "{catalogservice.bindings.https.url}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http"
-        }
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
       }
     },
     "catalogdbapp": {
@@ -131,18 +67,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http"
-        }
       }
     }
   }

@@ -1,0 +1,18 @@
+{
+  "app": "dotnet run -- --publisher cdk",
+  "watch": {
+    "include": [
+      "**"
+    ],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "src/*/obj",
+      "src/*/bin",
+      "src/*.sln",
+      "src/*/GlobalSuppressions.cs",
+      "src/*/*.csproj"
+    ]
+  },
+  "context": {}
+}

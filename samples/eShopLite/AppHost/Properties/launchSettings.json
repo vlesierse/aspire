@@ -21,19 +21,20 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
-      },
-      "generate-cdk": {
-        "commandName": "Project",
-        "launchBrowser": true,
-        "dotnetRunMessages": true,
-        "commandLineArgs": "--publisher cdk",
-        "applicationUrl": "http://localhost:15888",
-        "environmentVariables": {
-          "ASPNETCORE_ENVIRONMENT": "Development",
-          "DOTNET_ENVIRONMENT": "Development",
-          "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
-        }
       }
     },
+    "generate-cdk": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "dotnetRunMessages": true,
+      "commandLineArgs": "--publisher cdk",
+      "applicationUrl": "http://localhost:15888",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
+      }
+    }
+  },
   "$schema": "http://json.schemastore.org/launchsettings.json"
 }

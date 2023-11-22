@@ -14,7 +14,7 @@ public static class AWSResourceExtensions
 {
     public static IDistributedApplicationBuilder AddAWSCDKPublisher(this IDistributedApplicationBuilder builder)
     {
-        builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("cdk");
+        builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, AWSCDKPublisher>("cdk");
         return builder;
     }
 
@@ -23,6 +23,5 @@ public static class AWSResourceExtensions
         return builder
             .AddResource(new AWSCDKResource(name))
             .WithAnnotation(new AWSCDKPublishingAnnotationCallback(factory));
-        //.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureKeyVaultToManifest));
     }
 }
