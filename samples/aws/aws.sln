@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSAppHost", "AWSAppHost\AWSAppHost.csproj", "{71BCDA09-4897-454F-9415-D42BD2A95952}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSWebApi", "AWSWebApi\AWSWebApi.csproj", "{C7375717-269D-4634-B89E-5379C449C720}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "ServiceDefaults\ServiceDefaults.csproj", "{DECA5CD9-0FE2-4EEA-84C6-B925446B8634}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{71BCDA09-4897-454F-9415-D42BD2A95952}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71BCDA09-4897-454F-9415-D42BD2A95952}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71BCDA09-4897-454F-9415-D42BD2A95952}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71BCDA09-4897-454F-9415-D42BD2A95952}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7375717-269D-4634-B89E-5379C449C720}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7375717-269D-4634-B89E-5379C449C720}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7375717-269D-4634-B89E-5379C449C720}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7375717-269D-4634-B89E-5379C449C720}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DECA5CD9-0FE2-4EEA-84C6-B925446B8634}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DECA5CD9-0FE2-4EEA-84C6-B925446B8634}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DECA5CD9-0FE2-4EEA-84C6-B925446B8634}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DECA5CD9-0FE2-4EEA-84C6-B925446B8634}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
