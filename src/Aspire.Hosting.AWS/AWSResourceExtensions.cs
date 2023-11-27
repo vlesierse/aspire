@@ -3,7 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
+using Aspire.Hosting.AWS.Provisioning;
 using Aspire.Hosting.AWS.Publisher;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Constructs;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +25,15 @@ public static class AWSResourceExtensions
         return builder
             .AddResource(new AWSCDKResource(name))
             .WithAnnotation(new AWSCDKPublishingAnnotationCallback(factory));
-        //.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureKeyVaultToManifest));
+    }
+
+    public static IDistributedApplicationBuilder AddAWSProvisioning(this IDistributedApplicationBuilder builder)
+    {
+        builder.Services.AddLifecycleHook<AWSCDKProvisioner>();
+
+        // Attempt to read azure configuration from configuration
+        builder.Services.AddOptions<AWSProvisionerOptions>().BindConfiguration("AWS");
+
+        return builder;
     }
 }

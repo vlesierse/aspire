@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Amazon.CDK.Lib" />
+    <PackageReference Include="AWSSDK.CloudFormation" />
   </ItemGroup>
 
   <ItemGroup>

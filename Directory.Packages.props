@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS CDK dependencies -->
+    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.301.3" />
     <PackageVersion Include="Constructs" Version="1.3.0" />
     <PackageVersion Include="Amazon.CDK.Lib" Version="2.110.1" />
     <!-- Azure SDK for .NET dependencies -->
