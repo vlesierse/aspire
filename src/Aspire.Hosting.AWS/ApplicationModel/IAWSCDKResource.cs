@@ -3,8 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.AWS;
+namespace Aspire.Hosting.AWS.ApplicationModel;
 
-public class AWSCDKResource(string name) : Resource(name), IAWSResource
-{
-}
+public interface IAWSCDKResource : IResource;

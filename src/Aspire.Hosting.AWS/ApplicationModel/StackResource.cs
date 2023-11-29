@@ -3,8 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.AWS;
+namespace Aspire.Hosting.AWS.ApplicationModel;
 
-public interface IAWSResource : IResource
-{
-}
+public class StackResource(string name) : Resource(name), IStackResource;

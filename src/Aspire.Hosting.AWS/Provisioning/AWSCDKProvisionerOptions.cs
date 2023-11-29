@@ -3,7 +3,9 @@
 
 namespace Aspire.Hosting.AWS.Provisioning;
 
-public class AWSProvisionerOptions
+public class AWSCDKProvisionerOptions
 {
     public string StackName { get; set; } = "Aspire";
+
+    public TimeSpan StackPollingDelay { get; set; } = TimeSpan.FromSeconds(3);
 }
