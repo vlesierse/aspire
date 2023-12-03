@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model;
 
@@ -11,13 +13,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
-    private readonly List<Subscription> _subscriptions;
+    private readonly List<ModelSubscription> _subscriptions;
     private readonly object _lock = new object();
 
     public ResourceOutgoingPeerResolver(IDashboardViewModelService dashboardViewModelService)
     {
         _dashboardViewModelService = dashboardViewModelService;
-        _subscriptions = new List<Subscription>();
+        _subscriptions = new List<ModelSubscription>();
 
         var viewModelMonitor = _dashboardViewModelService.GetResources();
         var initialList = viewModelMonitor.Snapshot;
@@ -55,33 +57,39 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         await RaisePeerChangesAsync().ConfigureAwait(false);
     }
 
-    public string ResolvePeerName(string networkAddress)
+    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
     {
-        foreach (var (resourceName, resource) in _resourceNameMapping)
+        var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey);
+        if (address != null)
         {
-            foreach (var service in resource.Services)
+            foreach (var (resourceName, resource) in _resourceNameMapping)
             {
-                if (string.Equals(service.AddressAndPort, networkAddress, StringComparison.OrdinalIgnoreCase))
+                foreach (var service in resource.Services)
                 {
-                    return resource.Name;
+                    if (string.Equals(service.AddressAndPort, address, StringComparison.OrdinalIgnoreCase))
+                    {
+                        name = resource.Name;
+                        return true;
+                    }
                 }
             }
         }
 
-        return networkAddress;
+        name = null;
+        return false;
     }
 
     public IDisposable OnPeerChanges(Func<Task> callback)
     {
         lock (_lock)
         {
-            var subscription = new Subscription(callback, RemoveSubscription);
+            var subscription = new ModelSubscription(callback, RemoveSubscription);
             _subscriptions.Add(subscription);
             return subscription;
         }
     }
 
-    private void RemoveSubscription(Subscription subscription)
+    private void RemoveSubscription(ModelSubscription subscription)
     {
         lock (_lock)
         {
@@ -96,7 +104,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             return;
         }
 
-        Subscription[] subscriptions;
+        ModelSubscription[] subscriptions;
         lock (_lock)
         {
             subscriptions = _subscriptions.ToArray();
@@ -120,14 +128,5 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private sealed class Subscription(Func<Task> callback, Action<Subscription> onDispose) : IDisposable
-    {
-        private readonly Func<Task> _callback = callback;
-        private readonly Action<Subscription> _onDispose = onDispose;
-
-        public void Dispose() => _onDispose(this);
-        public Task ExecuteAsync() => _callback();
     }
 }
