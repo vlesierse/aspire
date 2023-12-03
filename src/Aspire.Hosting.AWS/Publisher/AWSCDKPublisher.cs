@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Constructs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -29,8 +28,36 @@ public class AWSCDKPublisher(
         var builder = new AWSCDKApplicationBuilder();
         var stack = builder.AddStack(new StackResource(_options.StackName));
         PublishConstructResources(resources, stack);
+        ModifyConstructResources(resources);
         lifetime.StopApplication();
         return Task.CompletedTask;
+    }
+
+    private void ModifyConstructResources(IEnumerable<IConstructResource> resources)
+    {
+        foreach (var resource in resources)
+        {
+            ModifyConstructResource(resource);
+        }
+    }
+
+    private void ModifyConstructResource(IConstructResource resource)
+    {
+        if (!resource.TryGetAnnotationsOfType<IConstructModifierAnnotation>(out var modifiers))
+        {
+            return;
+        }
+
+        foreach (var modifier in modifiers)
+        {
+            var construct = resource.GetConstruct();
+            if (construct == null)
+            {
+                continue;
+            }
+            logger.LogInformation("Modifying construct resource {resource}", resource.Name);
+            modifier.ChangeConstruct(construct, resource);
+        }
     }
 
     private void PublishConstructResources(IEnumerable<IConstructResource> resources, AWSCDKStackBuilder builder)
@@ -38,7 +65,10 @@ public class AWSCDKPublisher(
         foreach (var resource in resources)
         {
             logger.LogInformation("Building construct {resource}", resource.Name);
-            builder.AddConstruct((IConstructResource<Construct>)resource);
+            if (resource is IConstructBuilder resourceBuilder)
+            {
+                builder.AddConstruct(resourceBuilder);
+            }
         }
     }
 }

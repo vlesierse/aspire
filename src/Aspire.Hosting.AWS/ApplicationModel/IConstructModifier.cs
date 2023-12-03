@@ -5,4 +5,7 @@ using Constructs;
 
 namespace Aspire.Hosting.AWS.ApplicationModel;
 
-public delegate T ConstructBuilderDelegate<out T>(Construct scope, string name) where T : Construct;
+public interface IConstructModifier
+{
+    void ChangeConstruct(Construct construct);
+}

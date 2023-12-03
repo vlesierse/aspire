@@ -9,14 +9,13 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
       }
     },
-    "generate-manifest": {
+    "generate-cdk": {
       "commandName": "Project",
-      "launchBrowser": true,
       "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
+      "commandLineArgs": "--publisher cdk",
       "applicationUrl": "http://localhost:15888",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
@@ -24,11 +23,10 @@
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
       }
     },
-    "generate-cdk": {
+    "generate-manifest": {
       "commandName": "Project",
-      "launchBrowser": true,
       "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher cdk",
+      "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
       "applicationUrl": "http://localhost:15888",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",

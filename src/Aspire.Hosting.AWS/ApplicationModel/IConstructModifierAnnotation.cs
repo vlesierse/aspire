@@ -6,13 +6,7 @@ using Constructs;
 
 namespace Aspire.Hosting.AWS.ApplicationModel;
 
-public interface IConstructResource : IResource
+public interface IConstructModifierAnnotation : IResourceAnnotation
 {
-    Construct? GetConstruct();
-    IDictionary<string, string> Outputs { get; }
-}
-
-public interface IConstructResource<out T> : IConstructResource where T : Construct
-{
-    T? Construct { get; }
+    void ChangeConstruct(Construct construct, IConstructResource resource);
 }

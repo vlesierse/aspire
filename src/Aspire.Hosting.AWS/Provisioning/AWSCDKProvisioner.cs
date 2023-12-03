@@ -11,7 +11,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
-using Constructs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackResource = Aspire.Hosting.AWS.ApplicationModel.StackResource;
@@ -45,7 +44,9 @@ internal sealed class AWSCDKProvisioner(
             var builder = new AWSCDKApplicationBuilder();
             var stack = builder.AddStack(new StackResource(_options.StackName));
             ProvisionConstructResources(resources, stack);
-            await ProvisionCloudFormation(builder.Build(), cancellationToken).ConfigureAwait(false);
+            ModifyConstructResources(resources);
+            var outputs = await ProvisionCloudFormation(builder.Build(), cancellationToken).ConfigureAwait(false);
+            ProcessStackOutputs(outputs, resources);
         }
         catch (Exception ex)
         {
@@ -58,11 +59,61 @@ internal sealed class AWSCDKProvisioner(
         foreach (var resource in resources)
         {
             logger.LogInformation("Building construct {resource}", resource.Name);
-            builder.AddConstruct((IConstructResource<Construct>)resource);
+            if (resource is IConstructBuilder resourceBuilder)
+            {
+                builder.AddConstruct(resourceBuilder);
+            }
         }
     }
 
-    private async Task ProvisionCloudFormation(AWSCDKApplication application, CancellationToken cancellationToken)
+    private void ModifyConstructResources(IEnumerable<IConstructResource> resources)
+    {
+        foreach (var resource in resources)
+        {
+            ModifyConstructResource(resource);
+        }
+    }
+
+    private void ModifyConstructResource(IConstructResource resource)
+    {
+        if (!resource.TryGetAnnotationsOfType<IConstructModifierAnnotation>(out var modifiers))
+        {
+            return;
+        }
+
+        foreach (var modifier in modifiers)
+        {
+            var construct = resource.GetConstruct();
+            if (construct == null)
+            {
+                continue;
+            }
+            logger.LogInformation("Modifying construct resource {resource}", resource.Name);
+            modifier.ChangeConstruct(construct, resource);
+        }
+    }
+
+    private void ProcessStackOutputs(IEnumerable<Output> outputs, IEnumerable<IConstructResource> resources)
+    {
+        foreach (var output in outputs)
+        {
+            var exportNameSegments = output.ExportName.Split(':');
+            if (exportNameSegments.Length != 3)
+            {
+                continue;
+            }
+            var resource = resources.FirstOrDefault(x => x.Name == exportNameSegments[1]);
+            if (resource == null)
+            {
+                continue;
+            }
+
+            logger.LogInformation("Processing output {outputKey}", output.OutputKey);
+            resource.Outputs.Add(exportNameSegments[2], output.OutputValue);
+        }
+    }
+
+    private async Task<IEnumerable<Output>> ProvisionCloudFormation(AWSCDKApplication application, CancellationToken cancellationToken)
     {
         var stack = application.Assembly.GetStackByName(_options.StackName);
         logger.LogInformation("Provisioning CloudFormation stack {StackName}", stack.StackName);
@@ -135,6 +186,8 @@ internal sealed class AWSCDKProvisioner(
         {
             logger.LogDebug("Output Name: {Name}, Value {Value}", output.OutputKey, output.OutputValue);
         }
+
+        return cfStack.Outputs;
     }
 
     private async Task<Stack> WaitStackToCompleteAsync(IAmazonCloudFormation cfClient, string stackName, CancellationToken cancellationToken)

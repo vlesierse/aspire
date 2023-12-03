@@ -6,8 +6,19 @@ using Constructs;
 
 namespace Aspire.Hosting.AWS.ApplicationModel;
 
-public class ConstructResource<T>(string name, BuildConstructDelegate<T> build) : Resource(name), IConstructResource<T>
+public class ConstructResource<T>(string name, ConstructBuilderDelegate<T> builder)
+    : Resource(name), IConstructResource<T>, IConstructBuilder
     where T : Construct
 {
-    public BuildConstructDelegate<T> Build { get; } = build;
+    public T? Construct { get; private set; }
+
+    public Construct BuildConstruct(Construct scope)
+    {
+        Construct = builder(scope, Name);
+        return Construct;
+    }
+
+    public Construct? GetConstruct() => Construct;
+
+    public IDictionary<string, string> Outputs { get; } = new Dictionary<string, string>();
 }

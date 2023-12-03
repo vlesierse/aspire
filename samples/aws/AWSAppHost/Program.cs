@@ -13,9 +13,8 @@ var table = builder.AddConstruct<Table>("table", (scope, name) =>
             PartitionKey = new Attribute { Name = "id", Type = AttributeType.STRING },
             BillingMode = BillingMode.PAY_PER_REQUEST
         })
-);
+).WithOutput("TableName", table => table.TableName);
 
-builder.AddProject<Projects.AWSWebApi>("webapi");
-    //.WithReference(table, t => t.TableArn);
+builder.AddProject<Projects.WebApp>("webapp").WithReference(table);
 
 builder.Build().Run();

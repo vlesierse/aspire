@@ -10,9 +10,9 @@ public class AWSCDKStackBuilder(Stack stack)
 {
     public Stack Stack { get; } = stack;
 
-    public AWSCDKStackBuilder AddConstruct(IConstructResource<Construct> resource)
+    public Construct AddConstruct(IConstructBuilder builder)
     {
-        resource.Build(Stack, resource.Name);
-        return this;
+        var construct = builder.BuildConstruct(Stack);
+        return construct;
     }
 }
