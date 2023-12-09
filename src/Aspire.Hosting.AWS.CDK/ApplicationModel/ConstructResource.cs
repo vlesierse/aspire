@@ -4,7 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Constructs;
 
-namespace Aspire.Hosting.AWS.ApplicationModel;
+namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
 public class ConstructResource<T>(string name, ConstructBuilderDelegate<T> builder)
     : Resource(name), IConstructResource<T>, IConstructBuilder

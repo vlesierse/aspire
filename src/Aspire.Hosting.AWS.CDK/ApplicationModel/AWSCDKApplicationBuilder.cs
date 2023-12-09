@@ -3,7 +3,7 @@
 
 using Amazon.CDK;
 
-namespace Aspire.Hosting.AWS.ApplicationModel;
+namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
 public class AWSCDKApplicationBuilder
 {
@@ -11,7 +11,7 @@ public class AWSCDKApplicationBuilder
 
     public AWSCDKStackBuilder AddStack(IStackResource resource)
     {
-        var stack = new Stack(App, resource.Name);
+        var stack = new Stack<>(App, resource.Name);
         return new AWSCDKStackBuilder(stack);
     }
 

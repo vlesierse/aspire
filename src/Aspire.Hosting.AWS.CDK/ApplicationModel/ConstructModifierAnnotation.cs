@@ -3,7 +3,7 @@
 
 using Constructs;
 
-namespace Aspire.Hosting.AWS.ApplicationModel;
+namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
 public class ConstructModifierAnnotation<T>(Action<T> modifier) : IConstructModifierAnnotation
     where T : Construct

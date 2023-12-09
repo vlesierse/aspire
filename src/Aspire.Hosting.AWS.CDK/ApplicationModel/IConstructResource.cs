@@ -4,7 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Constructs;
 
-namespace Aspire.Hosting.AWS.ApplicationModel;
+namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
 public interface IConstructResource : IResource
 {

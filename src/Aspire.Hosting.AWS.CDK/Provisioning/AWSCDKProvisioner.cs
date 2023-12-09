@@ -8,14 +8,15 @@ using System.Text.Json;
 using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.AWS.ApplicationModel;
+using Aspire.Hosting.AWS.CDK.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using StackResource = Aspire.Hosting.AWS.ApplicationModel.StackResource;
+using ApplicationModel_StackResource = Aspire.Hosting.AWS.CDK.ApplicationModel.StackResource;
+using StackResource = Aspire.Hosting.AWS.CDK.ApplicationModel.StackResource;
 
-namespace Aspire.Hosting.AWS.Provisioning;
+namespace Aspire.Hosting.AWS.CDK.Provisioning;
 
 internal sealed class AWSCDKProvisioner(
     IOptions<AWSCDKProvisionerOptions> options,
@@ -42,7 +43,7 @@ internal sealed class AWSCDKProvisioner(
         try
         {
             var builder = new AWSCDKApplicationBuilder();
-            var stack = builder.AddStack(new StackResource(_options.StackName));
+            var stack = builder.AddStack(new ApplicationModel_StackResource(_options.StackName));
             ProvisionConstructResources(resources, stack);
             ModifyConstructResources(resources);
             var outputs = await ProvisionCloudFormation(builder.Build(), cancellationToken).ConfigureAwait(false);
@@ -190,7 +191,7 @@ internal sealed class AWSCDKProvisioner(
         return cfStack.Outputs;
     }
 
-    private async Task<Stack> WaitStackToCompleteAsync(IAmazonCloudFormation cfClient, string stackName, CancellationToken cancellationToken)
+    private async Task<Stack<>> WaitStackToCompleteAsync(IAmazonCloudFormation cfClient, string stackName, CancellationToken cancellationToken)
     {
         const int TIMESTAMP_WIDTH = 20;
         const int LOGICAL_RESOURCE_WIDTH = 40;
@@ -200,7 +201,7 @@ internal sealed class AWSCDKProvisioner(
         var minTimeStampForEvents = DateTime.Now;
         logger.LogInformation("Waiting for CloudFormation stack {StackName} to be ready", stackName);
 
-        Stack stack;
+        Stack<> stack;
         do
         {
             await Task.Delay(_options.StackPollingDelay, cancellationToken).ConfigureAwait(false);
@@ -275,7 +276,7 @@ internal sealed class AWSCDKProvisioner(
         return events;
     }
 
-    private static async Task<Stack?> FindExistingStackAsync(IAmazonCloudFormation client, string stackName)
+    private static async Task<Stack<>?> FindExistingStackAsync(IAmazonCloudFormation client, string stackName)
     {
         await foreach(var stack in client.Paginators.DescribeStacks(new DescribeStacksRequest()).Stacks)
         {

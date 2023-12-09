@@ -3,7 +3,7 @@
 
 using Constructs;
 
-namespace Aspire.Hosting.AWS.ApplicationModel;
+namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
 public interface IConstructModifier
 {

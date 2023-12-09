@@ -3,6 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.AWS.ApplicationModel;
+namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
-public interface IAWSCDKResource : IResource;
+public class StackResource(string name) : Resource(name), IStackResource;

@@ -3,9 +3,9 @@
 
 using Amazon.CDK;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.AWS.ApplicationModel;
-using Aspire.Hosting.AWS.Provisioning;
-using Aspire.Hosting.AWS.Publisher;
+using Aspire.Hosting.AWS.CDK.ApplicationModel;
+using Aspire.Hosting.AWS.CDK.Provisioning;
+using Aspire.Hosting.AWS.CDK.Publisher;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Constructs;

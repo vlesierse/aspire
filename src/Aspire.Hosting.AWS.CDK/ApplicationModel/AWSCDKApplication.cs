@@ -3,7 +3,7 @@
 
 using Amazon.CDK.CXAPI;
 
-namespace Aspire.Hosting.AWS.ApplicationModel;
+namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
 public class AWSCDKApplication(CloudAssembly assembly)
 {
