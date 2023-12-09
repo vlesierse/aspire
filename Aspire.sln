@@ -161,7 +161,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.IntegrationServiceA", "tests\testproject\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj", "{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.AWS", "src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj", "{726C6D16-50F9-4DDE-ABE8-89273DF9EB51}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.AWS.CDK", "src\Aspire.Hosting.AWS.CDK\Aspire.Hosting.AWS.CDK.csproj", "{726C6D16-50F9-4DDE-ABE8-89273DF9EB51}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aws", "aws", "{5093314C-E2F6-4145-AFC2-EBFCB19A9023}"
 EndProject
@@ -174,6 +174,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver", "src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj", "{20A5A907-A135-4735-B4BF-E13514F360E3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver.Tests", "tests\Aspire.MongoDB.Driver.Tests\Aspire.MongoDB.Driver.Tests.csproj", "{E592E447-BA3C-44FA-86C1-EBEDC864A644}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.AWS.CDK.Publishing", "src\Aspire.Hosting.AWS.CDK.Publishing\Aspire.Hosting.AWS.CDK.Publishing.csproj", "{9B90C552-30F9-42F2-804A-941B2120D58A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -473,6 +475,10 @@ Global
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B90C552-30F9-42F2-804A-941B2120D58A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B90C552-30F9-42F2-804A-941B2120D58A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B90C552-30F9-42F2-804A-941B2120D58A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B90C552-30F9-42F2-804A-941B2120D58A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -555,6 +561,7 @@ Global
 		{C1CE9594-0D7B-4703-89DC-5843A38B9C5A} = {5093314C-E2F6-4145-AFC2-EBFCB19A9023}
 		{C4BE3634-708A-4B89-8B13-8B3D637DEB0A} = {5093314C-E2F6-4145-AFC2-EBFCB19A9023}
 		{1A55F309-738B-4F2B-96CA-AFE00DD83DF6} = {5093314C-E2F6-4145-AFC2-EBFCB19A9023}
+		{9B90C552-30F9-42F2-804A-941B2120D58A} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

@@ -11,7 +11,7 @@ public class AWSCDKApplicationBuilder
 
     public AWSCDKStackBuilder AddStack(IStackResource resource)
     {
-        var stack = new Stack<>(App, resource.Name);
+        var stack = new Stack(App, resource.Name);
         return new AWSCDKStackBuilder(stack);
     }
 

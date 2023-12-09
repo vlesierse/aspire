@@ -14,7 +14,6 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ApplicationModel_StackResource = Aspire.Hosting.AWS.CDK.ApplicationModel.StackResource;
-using StackResource = Aspire.Hosting.AWS.CDK.ApplicationModel.StackResource;
 
 namespace Aspire.Hosting.AWS.CDK.Provisioning;
 
@@ -191,7 +190,7 @@ internal sealed class AWSCDKProvisioner(
         return cfStack.Outputs;
     }
 
-    private async Task<Stack<>> WaitStackToCompleteAsync(IAmazonCloudFormation cfClient, string stackName, CancellationToken cancellationToken)
+    private async Task<Stack> WaitStackToCompleteAsync(IAmazonCloudFormation cfClient, string stackName, CancellationToken cancellationToken)
     {
         const int TIMESTAMP_WIDTH = 20;
         const int LOGICAL_RESOURCE_WIDTH = 40;
@@ -201,7 +200,7 @@ internal sealed class AWSCDKProvisioner(
         var minTimeStampForEvents = DateTime.Now;
         logger.LogInformation("Waiting for CloudFormation stack {StackName} to be ready", stackName);
 
-        Stack<> stack;
+        Stack stack;
         do
         {
             await Task.Delay(_options.StackPollingDelay, cancellationToken).ConfigureAwait(false);
@@ -216,7 +215,7 @@ internal sealed class AWSCDKProvisioner(
             }
             for (var i = events.Count - 1; i >= 0; i--)
             {
-                string line =
+                var line =
                     events[i].Timestamp.ToString("g", CultureInfo.InvariantCulture).PadRight(TIMESTAMP_WIDTH) + " " +
                     events[i].LogicalResourceId.PadRight(LOGICAL_RESOURCE_WIDTH) + " " +
                     events[i].ResourceStatus.ToString(CultureInfo.InvariantCulture).PadRight(RESOURCE_STATUS);
@@ -260,15 +259,15 @@ internal sealed class AWSCDKProvisioner(
             {
                 throw new AWSProvisioningException($"Error getting events for CloudFormation stack: {e.Message}", e);
             }
-            foreach (var evnt in response.StackEvents)
+            foreach (var @event in response.StackEvents)
             {
-                if (string.Equals(evnt.EventId, mostRecentEventId) || evnt.Timestamp < minTimeStampForEvents)
+                if (string.Equals(@event.EventId, mostRecentEventId) || @event.Timestamp < minTimeStampForEvents)
                 {
                     noNewEvents = true;
                     break;
                 }
 
-                events.Add(evnt);
+                events.Add(@event);
             }
 
         } while (!noNewEvents && !string.IsNullOrEmpty(response.NextToken));
@@ -276,7 +275,7 @@ internal sealed class AWSCDKProvisioner(
         return events;
     }
 
-    private static async Task<Stack<>?> FindExistingStackAsync(IAmazonCloudFormation client, string stackName)
+    private static async Task<Stack?> FindExistingStackAsync(IAmazonCloudFormation client, string stackName)
     {
         await foreach(var stack in client.Paginators.DescribeStacks(new DescribeStacksRequest()).Stacks)
         {

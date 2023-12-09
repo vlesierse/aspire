@@ -5,9 +5,7 @@ using Amazon.CDK;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CDK.ApplicationModel;
 using Aspire.Hosting.AWS.CDK.Provisioning;
-using Aspire.Hosting.AWS.CDK.Publisher;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Constructs;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,13 +14,8 @@ namespace Aspire.Hosting;
 public static class AWSCDKResourceExtensions
 {
     public const string DefaultConfigSection = "AWS::RESOURCES";
-    public static IDistributedApplicationBuilder AddAWSCDKPublisher(this IDistributedApplicationBuilder builder)
-    {
-        builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, AWSCDKPublisher>("cdk");
-        return builder;
-    }
 
-    public static IDistributedApplicationBuilder AddAWSProvisioning(this IDistributedApplicationBuilder builder)
+    public static IDistributedApplicationBuilder AddAWSCDKProvisioning(this IDistributedApplicationBuilder builder)
     {
         builder.Services.AddLifecycleHook<AWSCDKProvisioner>();
         _ = builder.Services.AddOptions<AWSCDKProvisionerOptions>().BindConfiguration("AWS");

@@ -6,9 +6,9 @@ using Constructs;
 
 namespace Aspire.Hosting.AWS.CDK.ApplicationModel;
 
-public class AWSCDKStackBuilder(Stack<> stack)
+public class AWSCDKStackBuilder(Stack stack)
 {
-    public Stack<> Stack { get; } = stack;
+    public Stack Stack { get; } = stack;
 
     public Construct AddConstruct(IConstructBuilder builder)
     {

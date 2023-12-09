@@ -17,7 +17,7 @@ public class ConstructOutputAnnotation<T>(string name, ConstructOutputDelegate<T
     public void ChangeConstruct(Construct construct, IConstructResource resource)
     {
         var target = (T)construct;
-        var export = $"{Stack<>.Of(construct).StackName}:{resource.Name}:{Name}";
+        var export = $"{Stack.Of(construct).StackName}:{resource.Name}:{Name}";
         _ = new CfnOutput(construct, Name, new CfnOutputProps
         {
             Value = output(target),
