@@ -55,7 +55,7 @@ public partial class Metrics : IDisposable
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; set; }
+    public required IResourceService ResourceService { get; set; }
 
     [Inject]
     public required ProtectedSessionStorage ProtectedSessionStore { get; set; }
@@ -105,7 +105,7 @@ public partial class Metrics : IDisposable
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = SelectViewModelFactory.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
         _applications.Insert(0, s_selectApplication);
         UpdateSubscription();
     }
