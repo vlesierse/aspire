@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Amazon.CDK.CXAPI;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CDK;
 using Aspire.Hosting.AWS.Provisioning;
@@ -78,8 +79,9 @@ internal sealed class AWSLifecycleHook(
             {
                 var stackArtifact = cloudAssembly.Stacks.FirstOrDefault(stack => stack.StackName == stackResource.StackName)
                                     ?? throw new InvalidOperationException($"Stack '{stackResource.StackName}' not found in synthesized cloud assembly.");
+                var assetsArtifact = stackArtifact.Dependencies.OfType<AssetManifestArtifact>().SingleOrDefault();
                 // Annotate the resource with information for writing the manifest and provisioning.
-                stackResource.Annotations.Add(new StackArtifactResourceAnnotation(stackArtifact));
+                stackResource.Annotations.Add(new CloudAssemblyResourceAnnotation(stackArtifact, assetsArtifact));
             }
         }
     }

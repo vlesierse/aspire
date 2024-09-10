@@ -8,6 +8,8 @@ Aspire.Hosting.AWS.CDK.IResourceWithConstruct.Construct.get -> Constructs.IConst
 Aspire.Hosting.AWS.CDK.IResourceWithConstruct<T>
 Aspire.Hosting.AWS.CDK.IResourceWithConstruct<T>.Construct.get -> T
 Aspire.Hosting.AWS.CDK.IStackResource
+Aspire.Hosting.AWS.CDK.IStackResource.S3Client.get -> Amazon.S3.IAmazonS3?
+Aspire.Hosting.AWS.CDK.IStackResource.S3Client.set -> void
 Aspire.Hosting.AWS.CDK.IStackResource.Stack.get -> Amazon.CDK.Stack!
 Aspire.Hosting.AWS.CDK.IStackResource<T>
 Aspire.Hosting.AWS.CDK.IStackResource<T>.Stack.get -> T!

@@ -10,9 +10,11 @@ namespace Aspire.Hosting.AWS.CDK;
 /// <summary>
 /// Annotations that stores the <see cref="CloudFormationStackArtifact"/> to the stack resource.
 /// </summary>
-/// <param name="stackArtifact"></param>
 [DebuggerDisplay("Type = {GetType().Name,nq}, StackName = {StackArtifact.StackName}")]
-internal sealed class StackArtifactResourceAnnotation(CloudFormationStackArtifact stackArtifact) : IResourceAnnotation
+internal sealed class CloudAssemblyResourceAnnotation(CloudFormationStackArtifact stackArtifact, AssetManifestArtifact? assetsArtifact) : IResourceAnnotation
 {
-    public CloudFormationStackArtifact StackArtifact { get; } = stackArtifact;
+
+    public AssetManifestArtifact? AssetsArtifact { get; } = assetsArtifact;
+
+    public CloudFormationStackArtifact StackArtifact { get; } = stackArtifact;    
 }

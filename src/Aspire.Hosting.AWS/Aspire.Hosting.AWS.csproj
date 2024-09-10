@@ -23,6 +23,7 @@
     <PackageReference Include="Amazon.CDK.Lib" />
     <PackageReference Include="AWSSDK.Core" />
     <PackageReference Include="AWSSDK.CloudFormation" />
+    <PackageReference Include="AWSSDK.S3" />
   </ItemGroup>
 
   <ItemGroup>

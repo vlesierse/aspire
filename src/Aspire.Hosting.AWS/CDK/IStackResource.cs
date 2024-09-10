@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Amazon.CDK;
+using Amazon.S3;
 using Aspire.Hosting.AWS.CloudFormation;
 
 namespace Aspire.Hosting.AWS.CDK;
@@ -15,4 +16,10 @@ public interface IStackResource : ICloudFormationTemplateResource, IResourceWith
     /// The AWS CDK stack
     /// </summary>
     Stack Stack { get; }
+
+    /// <summary>
+    /// The configured Amazon S3 service client used to make service calls. If this property set
+    /// then AWSSDKConfig is ignored.
+    /// </summary>
+    IAmazonS3? S3Client { get; set; }
 }
