@@ -4,8 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -167,6 +166,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds the arguments to be passed to a container resource when the container is started.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="args">The arguments to be passed to the container when it is started.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params object[] args) where T : IResourceWithArgs
+    {
+        return builder.WithArgs(context => context.Args.AddRange(args));
+    }
+
+    /// <summary>
     /// Adds a callback to be executed with a list of command-line arguments when a container resource is started.
     /// </summary>
     /// <typeparam name="T"></typeparam>
@@ -283,7 +294,10 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional)
+            {
+                ConnectionName = connectionName
+            };
         });
     }
 
@@ -383,7 +397,7 @@ public static class ResourceBuilderExtensions
     /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
     /// <returns></returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
     {
         var endpoint = builder.Resource.Annotations
             .OfType<EndpointAnnotation>()
@@ -425,7 +439,7 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null) where T : IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null) where T : IResourceWithEndpoints
     {
         var annotation = new EndpointAnnotation(
             protocol: ProtocolType.Tcp,
@@ -470,7 +484,7 @@ public static class ResourceBuilderExtensions
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
+    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
     {
         return builder.WithEndpoint(targetPort: targetPort, port: port, scheme: "http", name: name, env: env, isProxied: isProxied);
     }
@@ -488,7 +502,7 @@ public static class ResourceBuilderExtensions
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
+    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, [EndpointName] string? name = null, string? env = null, bool isProxied = true) where T : IResourceWithEndpoints
     {
         return builder.WithEndpoint(targetPort: targetPort, port: port, scheme: "https", name: name, env: env, isProxied: isProxied);
     }
@@ -525,7 +539,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The the resource builder.</param>
     /// <param name="name">The name of the endpoint.</param>
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
-    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, string name) where T : IResourceWithEndpoints
+    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name) where T : IResourceWithEndpoints
     {
         return builder.Resource.GetEndpoint(name);
     }
@@ -562,6 +576,12 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>This method is useful when a resource should wait until another has started running. This can help
     /// reduce errors in logs during local development where dependency resources.</para>
+    /// <para>Some resources automatically register health checks with the application host container. For these
+    /// resources, calling <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> also results
+    /// in the resource being blocked from starting until the health checks associated with the dependency resource
+    /// return <see cref="HealthStatus.Healthy"/>.</para>
+    /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
+    /// additional health checks with a resource.</para>
     /// </remarks>
     /// <example>
     /// Start message queue before starting the worker service.
@@ -575,47 +595,17 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        if (builder.Resource as IResource == dependency.Resource)
         {
-            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-            var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
 
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
-            var snapshot = resourceEvent.Snapshot;
+        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
+        }
 
-            if (snapshot.State == KnownResourceStates.FailedToStart)
-            {
-                resourceLogger.LogError(
-                    "Dependency resource '{ResourceName}' failed to start.",
-                    dependency.Resource.Name
-                    );
-
-                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
-            }
-            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
-            {
-                resourceLogger.LogError(
-                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
-                    dependency.Resource.Name,
-                    snapshot.State.Text
-                    );
-
-                throw new DistributedApplicationException(
-                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state prematurely."
-                    );
-            }
-        });
-
-        return builder;
-
-        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
-            snapshot.State?.Text == KnownResourceStates.Running ||
-            snapshot.State?.Text == KnownResourceStates.Finished ||
-            snapshot.State?.Text == KnownResourceStates.Exited ||
-            snapshot.State?.Text == KnownResourceStates.FailedToStart;
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
     }
 
     /// <summary>
@@ -646,50 +636,108 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResource
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        if (builder.Resource as IResource == dependency.Resource)
         {
-            if (dependency.Resource.TryGetLastAnnotation<ReplicaAnnotation>(out var replicaAnnotation) && replicaAnnotation.Replicas > 1)
-            {
-                throw new DistributedApplicationException("WaitForCompletion cannot be used with resources that have replicas.");
-            }
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
 
-            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-            var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to complete.");
+        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
+        }
 
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
-            var snapshot = resourceEvent.Snapshot;
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForCompletion, exitCode));
+    }
 
-            if (snapshot.State == KnownResourceStates.FailedToStart)
-            {
-                resourceLogger.LogError(
-                    "Dependency resource '{ResourceName}' failed to start.",
-                    dependency.Resource.Name
-                    );
+    /// <summary>
+    /// Adds a <see cref="HealthCheckAnnotation"/> to the resource annotations to associate a resource with a named health check managed by the health check service.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="key">The key for the health check.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method is used in conjunction with
+    /// the <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> to associate a resource
+    /// registered in the application hosts dependency injection container. The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/>
+    /// method does not inject the health check itself it is purely an association mechanism.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Define a custom health check and associate it with a resource.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var startAfter = DateTime.Now.AddSeconds(30);
+    /// 
+    /// builder.Services.AddHealthChecks().AddCheck(mycheck", () =>
+    /// {
+    ///     return DateTime.Now > startAfter ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy();
+    /// });
+    ///
+    /// var pg = builder.AddPostgres("pg")
+    ///                 .WithHealthCheck("mycheck");
+    ///
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(pg)
+    ///        .WaitFor(pg); // This will result in waiting for the building check, and the
+    ///                      // custom check defined in the code.
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T : IResource
+    {
+        if (builder.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations) && annotations.Any(a => a.Key == key))
+        {
+            throw new DistributedApplicationException($"Resource '{builder.Resource.Name}' already has a health check with key '{key}'.");
+        }
 
-                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
-            }
-            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)  && snapshot.ExitCode != exitCode)
-            {
-                resourceLogger.LogError(
-                    "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
-                    dependency.Resource.Name,
-                    snapshot.State.Text,
-                    snapshot.ExitCode
-                    );
-
-                throw new DistributedApplicationException(
-                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}'"
-                    );
-            }
-        });
+        builder.WithAnnotation(new HealthCheckAnnotation(key));
 
         return builder;
+    }
 
-        static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
-            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) &&
-            snapshot.ExitCode is not null;
+    /// <summary>
+    /// Adds a <see cref="ResourceCommandAnnotation"/> to the resource annotations to add a resource command.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="type">The type of command. The type uniquely identifies the command.</param>
+    /// <param name="displayName">The display name visible in UI.</param>
+    /// <param name="executeCommand">
+    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// The callback result is used to indicate success or failure in the UI.
+    /// </param>
+    /// <param name="updateState">
+    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
+    /// <para>If a callback isn't specified, the command is always enabled.</para>
+    /// </param>
+    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconVariant">The icon variant.</param>
+    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
+    /// and can be executed by a user using the dashboard UI.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithCommand<T>(
+        this IResourceBuilder<T> builder,
+        string type,
+        string displayName,
+        Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
+        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
+        string? iconName = null,
+        IconVariant? iconVariant = null,
+        bool isHighlighted = false) where T : IResource
+    {
+        // Replace existing annotation with the same name.
+        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Type == type);
+        if (existingAnnotation != null)
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, iconName, iconVariant, isHighlighted));
     }
 }

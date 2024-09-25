@@ -6,12 +6,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Components.Resize;
+
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -27,12 +27,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private const string StartTimeColumn = nameof(StartTimeColumn);
     private const string SourceColumn = nameof(SourceColumn);
     private const string EndpointsColumn = nameof(EndpointsColumn);
-    private const string LogsColumn = nameof(LogsColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
-    private const string CommandsColumn = nameof(CommandsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
 
     private Subscription? _logsSubscription;
-    private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
+    private IList<GridColumn>? _gridColumns;
+    private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -139,8 +138,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool HasResourcesWithCommands => _resourceByName.Any(r => r.Value.Commands.Any());
-
     private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
@@ -149,18 +146,15 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        _manager = new GridColumnManager([
-            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+        _gridColumns = [
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
-            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr"),
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
-            new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
-        ], DimensionManager);
-
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "1.5fr", MobileWidth: "1fr")
+        ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
@@ -230,7 +224,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
+    private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
     {
         if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
         {
@@ -252,7 +246,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedResource == resource)
+        if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
         {
             await ClearSelectedResourceAsync();
         }
@@ -302,7 +296,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     }
 
     private string GetRowClass(ResourceViewModel resource)
-        => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
+        => string.Equals(resource.Name, SelectedResource?.Name, StringComparisons.ResourceName) ? "selected-row resource-row" : "resource-row";
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
@@ -318,16 +312,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
 
+        var messageResourceName = GetResourceName(resource);
+
         if (response.Kind == ResourceCommandResponseKind.Succeeded)
         {
-            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName));
+            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName + " " + messageResourceName));
         }
         else
         {
             ToastService.ShowCommunicationToast(new ToastParameters<CommunicationToastContent>()
             {
                 Intent = ToastIntent.Error,
-                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName),
+                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName + " " + messageResourceName),
                 PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)],
                 OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name))),
                 Content = new CommunicationToastContent()
@@ -337,6 +333,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             });
         }
     }
+
+    private static string GetResourceStateTooltip(ResourceViewModel resource) =>
+        resource.ShowReadinessState() ?
+        $"{resource.State.Humanize()} ({resource.ReadinessState.Humanize()})"
+        : resource.State.Humanize();
 
     private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
     {
@@ -360,9 +361,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
         }
 
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
+        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
         {
-            return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
+            return (Value: value, ContentAfterValue: null, ValueToCopy: value, Tooltip: value);
         }
 
         return null;

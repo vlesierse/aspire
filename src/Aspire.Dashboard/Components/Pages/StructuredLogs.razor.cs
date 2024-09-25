@@ -4,13 +4,13 @@
 using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -42,6 +42,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
     private GridColumnManager _manager = null!;
+    private IList<GridColumn> _gridColumns = null!;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
@@ -132,27 +133,27 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override Task OnInitializedAsync()
     {
-        _manager = new GridColumnManager([
+        _gridColumns = [
             new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
             new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
             new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
-        ], DimensionManager);
+        ];
 
         if (!string.IsNullOrEmpty(TraceId))
         {
-            ViewModel.AddFilter(new LogFilter
+            ViewModel.AddFilter(new TelemetryFilter
             {
-                Field = LogFilter.KnownTraceIdField, Condition = FilterCondition.Equals, Value = TraceId
+                Field = KnownStructuredLogFields.TraceIdField, Condition = FilterCondition.Equals, Value = TraceId
             });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            ViewModel.AddFilter(new LogFilter
+            ViewModel.AddFilter(new TelemetryFilter
             {
-                Field = LogFilter.KnownSpanIdField, Condition = FilterCondition.Equals, Value = SpanId
+                Field = KnownStructuredLogFields.SpanIdField, Condition = FilterCondition.Equals, Value = SpanId
             });
         }
 
@@ -191,7 +192,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override async Task OnParametersSetAsync()
     {
-        await this.InitializeViewModelAsync();
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
         UpdateSubscription();
     }
 
@@ -235,7 +239,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedLogEntry?.LogEntry == entry)
+        if (SelectedLogEntry?.LogEntry.InternalId == entry.InternalId)
         {
             await ClearSelectedLogEntryAsync();
         }
@@ -262,16 +266,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private async Task OpenFilterAsync(LogFilter? entry)
+    private async Task OpenFilterAsync(TelemetryFilter? entry)
     {
         if (_contentLayout is not null)
         {
             await _contentLayout.CloseMobileToolbarAsync();
         }
 
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
-
-        var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
+        var title = entry is not null ? FilterLoc[nameof(StructuredFiltering.DialogTitleEditFilter)] : FilterLoc[nameof(StructuredFiltering.DialogTitleAddFilter)];
         var parameters = new DialogParameters
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
@@ -279,17 +281,20 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
+            Width = "450px"
         };
         var data = new FilterDialogViewModel
         {
-            Filter = entry, LogPropertyKeys = logPropertyKeys
+            Filter = entry,
+            PropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
+            KnownKeys = KnownStructuredLogFields.AllFields
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
 
     private async Task HandleFilterDialog(DialogResult result)
     {
-        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is LogFilter filter)
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is TelemetryFilter filter)
         {
             if (filterResult.Delete)
             {
@@ -344,11 +349,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
-    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app.Application, _applications);
 
     private string GetRowClass(OtlpLogEntry entry)
     {
-        if (entry == SelectedLogEntry?.LogEntry)
+        if (entry.InternalId == SelectedLogEntry?.LogEntry.InternalId)
         {
             return "selected-row";
         }
@@ -368,7 +373,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
-            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
+            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
@@ -386,7 +391,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         _filterCts?.Dispose();
-        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
+        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
@@ -457,6 +462,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }
-        public required IReadOnlyCollection<LogFilter> Filters { get; set; }
+        public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
     }
 }

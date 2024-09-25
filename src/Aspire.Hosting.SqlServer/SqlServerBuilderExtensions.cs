@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -19,7 +20,7 @@ public static class SqlServerBuilderExtensions
     /// <param name="password">The parameter used to provide the administrator password for the SQL Server resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port for the SQL Server.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
+    public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -28,6 +29,38 @@ public static class SqlServerBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", minLower: 1, minUpper: 1, minNumeric: 1);
 
         var sqlServer = new SqlServerServerResource(name, passwordParameter);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServer, async (@event, ct) =>
+        {
+            connectionString = await sqlServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
+            }
+
+            var lookup = builder.Resources.OfType<SqlServerDatabaseResource>().ToDictionary(d => d.Name);
+
+            foreach (var databaseName in sqlServer.Databases)
+            {
+                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
+                {
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under SQL Server resource '{sqlServer.Name}' was not found in the model.");
+                }
+
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
+
+                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddSqlServer(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(sqlServer)
                       .WithEndpoint(port: port, targetPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithImage(SqlServerContainerImageTags.Image, SqlServerContainerImageTags.Tag)
@@ -36,7 +69,8 @@ public static class SqlServerBuilderExtensions
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
-                      });
+                      })
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -46,7 +80,7 @@ public static class SqlServerBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -56,7 +90,24 @@ public static class SqlServerBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(sqlServerDatabase);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
+        {
+            connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServerDatabase}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => connectionString!, name: healthCheckKey);
+
+        return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
+                                         .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
